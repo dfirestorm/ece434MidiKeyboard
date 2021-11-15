@@ -13,7 +13,7 @@ from Adafruit_BBIO.Encoder import RotaryEncoder, eQEP2, eQEP1
 import smbus
 import time
 from dictionaries import seg7_dict, midi_names, midi_freq
-import midi
+from midi import MidiConnector, NoteOn, NoteOff, Message
 
 def main():
     play()
@@ -25,6 +25,7 @@ class Piano:
         self.pos1 = 0
         self.pos2 = 0
         self.current_notes = []
+        self.active_notes = 0
         self.ended = 0
         self.setup()
         
@@ -34,6 +35,7 @@ class Piano:
         self.control_setup()
         self.gpio_setup()
         self.button_setup()
+        #self.midi_setup()
     
     def pwm_setup(self):
         self.pwm_pins = ["P9_22", "P9_14", "P8_19"]
@@ -60,51 +62,39 @@ class Piano:
         for pin in self.buttons:
             GPIO.setup(pin, GPIO.IN)
             # print(GPIO.input(pin))
-        
-        self.digits = ["P8_34", "P8_36", "P8_37", "P8_38"]
-        for pin in self.digits:
-            GPIO.setup(pin, GPIO.OUT)
-            GPIO.output(pin, 1)
-            
-        self.segments = ["P8_39", "P8_40", "P8_41", "P8_42", "P8_43", "P8_44", "P8_45"]
-        for pin in self.segments:
-            GPIO.setup(pin, GPIO.OUT)
-            GPIO.output(pin, 0)
+
     
     def button_setup(self):
         for button in self.buttons:
             # print("added event for "+button)
-            GPIO.add_event_detect(button, GPIO.BOTH, callback=self.button_notes)
+            GPIO.add_event_detect(button, GPIO.BOTH, callback=self.button_press)
+    
+    #def midi_setup(self):
+        #self.conn=MidiConnector('/dev/ttyOo')
+    
+    #def write_screen(self, string):
+        
             
-    def write_screen(self, string):
-        for j in range(4):
-            GPIO.output(self.digits[j], 1)
-            for i in range(7):
-                GPIO.output(self.segments[i], seg7_dict[string[j]][i])
-                #print("digit " + str(j) + " segment " + str(i) + " set to " + str(seg7_dict[string[j]][i]))
-            GPIO.output(self.digits[j], 0)
-            
-    def button_notes(self, button):
+    def button_press(self, button):
         midi_note = self.lowNote + self.buttons.index(button)
-        if GPIO.input(button) == True:
-            if midi_note not in self.current_notes:
-                self.current_notes.append(midi_note)
-                
-        else: 
-            if midi_note in self.current_notes:
-                self.current_notes.remove(midi_note)
+        if GPIO.input(button) and midi_note not in self.current_notes:
+            self.current_notes.append(midi_note)
+            #self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
+        elif midi_note in self.current_notes:
+            self.current_notes.remove(midi_note)
+            #self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
         self.pwm_update()
     
     def update_notes(self):
         self.current_notes = []
         for button in self.buttons:
             midi_note = self.lowNote + self.buttons.index(button)
-            if GPIO.input(button) == True:
-                if midi_note not in self.current_notes:
-                    self.current_notes.append(midi_note)
-            else:
-                if midi_note in self.current_notes:
-                    self.current_notes.remove(midi_note)
+            if GPIO.input(button) and midi_note not in self.current_notes:
+                self.current_notes.append(midi_note)
+                #self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
+            elif midi_note in self.current_notes:
+                self.current_notes.remove(midi_note)
+                #self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
         self.pwm_update()
     
     def pwm_update(self):
@@ -115,7 +105,6 @@ class Piano:
                 PWM.start(self.pwm_pins[i], 50, midi_freq[self.current_notes[i]])
             else:
                 PWM.stop(self.pwm_pins[i])
-            
             
     def get_position(self):
         self.pos1 = self.encoder1.position
@@ -142,7 +131,7 @@ class Piano:
 
 
     def run(self):
-        while self.ended == 0:
+        while True:
             #self.write_screen(midi_names[self.lowNote])
             self.get_input()
             
