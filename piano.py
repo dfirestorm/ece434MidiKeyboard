@@ -12,7 +12,7 @@ import Adafruit_BBIO.PWM as PWM
 from Adafruit_BBIO.Encoder import RotaryEncoder, eQEP2, eQEP1
 import smbus
 import time
-from dictionaries import seg7_dict, midi_names, midi_freq
+from dictionaries import midi_names, midi_freq
 from midi import MidiConnector, NoteOn, NoteOff, Message
 
 def main():
@@ -35,14 +35,15 @@ class Piano:
         self.control_setup()
         self.gpio_setup()
         self.button_setup()
-        #self.midi_setup()
+        self.midi_setup()
     
     def pwm_setup(self):
         self.pwm_pins = ["P9_22", "P9_14", "P8_19"]
         for pin in self.pwm_pins:
             # print("verified pwm for " + pin)
-            PWM.start(pin, 50, 5)
             PWM.stop(pin)
+            PWM.start(pin, 50, 5)
+            PWM.set_frequency(pin, 1)
             
     def control_setup(self):
         self.encoder1 = RotaryEncoder(eQEP1)
@@ -69,8 +70,8 @@ class Piano:
             # print("added event for "+button)
             GPIO.add_event_detect(button, GPIO.BOTH, callback=self.button_press)
     
-    #def midi_setup(self):
-        #self.conn=MidiConnector('/dev/ttyOo')
+    def midi_setup(self):
+        self.conn=MidiConnector('/dev/ttyO0')
     
     #def write_screen(self, string):
         
@@ -79,10 +80,10 @@ class Piano:
         midi_note = self.lowNote + self.buttons.index(button)
         if GPIO.input(button) and midi_note not in self.current_notes:
             self.current_notes.append(midi_note)
-            #self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
+            self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
         elif midi_note in self.current_notes:
             self.current_notes.remove(midi_note)
-            #self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
+            self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
         self.pwm_update()
     
     def update_notes(self):
@@ -91,10 +92,10 @@ class Piano:
             midi_note = self.lowNote + self.buttons.index(button)
             if GPIO.input(button) and midi_note not in self.current_notes:
                 self.current_notes.append(midi_note)
-                #self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
+                self.conn.write(Message(NoteOn(midi_note, 1), channel=1))
             elif midi_note in self.current_notes:
                 self.current_notes.remove(midi_note)
-                #self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
+                self.conn.write(Message(NoteOff(midi_note, 1), channel=1))
         self.pwm_update()
     
     def pwm_update(self):
@@ -102,9 +103,10 @@ class Piano:
         for i in range(3):
             #PWM.stop(self.pwm_pins[i])
             if i < len(self.current_notes):
-                PWM.start(self.pwm_pins[i], 50, midi_freq[self.current_notes[i]])
+                PWM.set_frequency(self.pwm_pins[i], midi_freq[self.current_notes[i]])
             else:
-                PWM.stop(self.pwm_pins[i])
+                PWM.set_frequency(self.pwm_pins[i], 1)
+                #PWM.stop(self.pwm_pins[i])
             
     def get_position(self):
         self.pos1 = self.encoder1.position
@@ -134,10 +136,12 @@ class Piano:
         while True:
             #self.write_screen(midi_names[self.lowNote])
             self.get_input()
+            time.sleep(0.05)
             
 
 def play():
     instance = Piano()
     instance.run()
+    PWM.cleanup()
 
 main()
