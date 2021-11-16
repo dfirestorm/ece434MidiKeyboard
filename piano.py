@@ -44,6 +44,7 @@ class Piano:
             PWM.stop(pin)
             PWM.start(pin, 50, 5)
             PWM.set_frequency(pin, 1)
+            PWM.set_duty_cycle(pin, 0)
             
     def control_setup(self):
         self.encoder1 = RotaryEncoder(eQEP1)
@@ -104,8 +105,10 @@ class Piano:
             #PWM.stop(self.pwm_pins[i])
             if i < len(self.current_notes):
                 PWM.set_frequency(self.pwm_pins[i], midi_freq[self.current_notes[i]])
+                PWM.set_duty_cycle(self.pwm_pins[i], 50)
             else:
                 PWM.set_frequency(self.pwm_pins[i], 1)
+                PWM.set_duty_cycle(self.pwm_pins[i], 0)
                 #PWM.stop(self.pwm_pins[i])
             
     def get_position(self):
