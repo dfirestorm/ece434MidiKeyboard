@@ -20,8 +20,8 @@ config-pin P8_27 gpio
 config-pin P8_28 gpio
 config-pin P8_29 gpio
 config-pin P8_30 gpio
-config-pin P9_23 gpio
 config-pin P8_32 gpio
+config-pin P8_34 gpio
 
 #pwm for buzzers
 config-pin P9_22 pwm

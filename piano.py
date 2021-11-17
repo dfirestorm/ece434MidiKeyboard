@@ -62,9 +62,8 @@ class Piano:
         self.encoder2.frequency = 500
         
     def button_setup(self):
-        self.buttons = ["P8_14", "P8_15", "P8_16", "P8_17", "P8_18", "P8_26", "P8_27", "P8_28", "P8_29", "P8_30", "P9_23", "P8_32"] 
-        # these pins conflict with HDMI, and note that P8_31 is not used (and 9_23 is used instead)
-        # this is because P8_31 was not returning 0 unless grounded
+        self.buttons = ["P8_14", "P8_15", "P8_16", "P8_17", "P8_18", "P8_26", "P8_27", "P8_28", "P8_29", "P8_30", "P8_32", "P8_34"] 
+        # these pins conflict with HDMI
 
         # Set the GPIO pins:
         for pin in self.buttons:
@@ -150,7 +149,7 @@ class Piano:
     
     def get_input(self):
         #check encoder positions vs stored positions
-        if self.encoder1.position == self.pos1 and self.encoder2.position == self.pos2
+        if self.encoder1.position == self.pos1 and self.encoder2.position == self.pos2:
             return # do nothing if positions haven't changed
         # encoder 1 modulates octaves
         if self.encoder1.position > self.pos1 and self.lowNote >=12:
